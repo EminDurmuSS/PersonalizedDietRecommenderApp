@@ -8,3 +8,4 @@ python-dotenv==1.0.1
 python_docx==1.1.2
 streamlit==1.35.0
 streamlit_image_select==0.6.0
+langchain-community==0.2.4
