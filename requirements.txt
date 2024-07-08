@@ -1,7 +1,7 @@
 langchain==0.2.6
 langchain_groq==0.1.5
 langchain_pinecone==0.1.1
-pinecone-client==4.0.0
+pinecone-client==3.9.9
 pinecone-plugin-interface==0.0.7
 openai==0.28.0
 pinecone==4.0.0
