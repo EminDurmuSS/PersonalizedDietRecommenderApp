@@ -1,15 +1,11 @@
-import os
 import uuid
 from dotenv import load_dotenv
-from PyPDF2 import PdfReader
-from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
-from pinecone import Pinecone, ServerlessSpec
+from pinecone import Pinecone
 import streamlit as st
 from langchain.chains import ConversationalRetrievalChain
 from langchain_groq import ChatGroq
-from langchain.llms import OpenAI
 import openai
 import re
 from docx import Document
