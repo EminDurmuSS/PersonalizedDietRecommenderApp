@@ -19,10 +19,10 @@ from streamlit_image_select import image_select
 # Load environment variables
 load_dotenv()
 
-# Set API keys
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-INDEX_NAME = os.getenv("INDEX_NAME", "foodrecipe5")
+# Access secrets
+PINECONE_API_KEY = st.secrets["PINECONE_API_KEY"]
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+INDEX_NAME = st.secrets["INDEX_NAME"]
 
 # Initialize Pinecone
 pc = Pinecone(api_key=PINECONE_API_KEY, environment="us-west1-gcp")
@@ -288,7 +288,7 @@ def query_recipes(vector):
     return response
 
 def get_conversation_chain(vectorstore):
-    llm = ChatGroq(temperature=0.8, groq_api_key=os.getenv("GROQ_API_KEY"), model_name="llama3-70b-8192")
+    llm = ChatGroq(temperature=0.8, groq_api_key=st.secrets["GROQ_API_KEY"], model_name="llama3-70b-8192")
     retriever = vectorstore.as_retriever()
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
