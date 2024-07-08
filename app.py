@@ -23,6 +23,13 @@ load_dotenv()
 PINECONE_API_KEY = st.secrets["PINECONE_API_KEY"]
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 INDEX_NAME = st.secrets["INDEX_NAME"]
+GROQ_API_KEY=st.secrets["GROQ_API_KEY"]
+openai.api_key = OPENAI_API_KEY
+
+print(f"PINECONE_API_KEY: {PINECONE_API_KEY}")
+print(f"OPENAI_API_KEY: {OPENAI_API_KEY}")
+print(f"INDEX_NAME: {INDEX_NAME}")
+print(f"GROQ_API_KEY: {GROQ_API_KEY}")
 
 # Initialize Pinecone
 pc = Pinecone(api_key=PINECONE_API_KEY, environment="us-west1-gcp")
