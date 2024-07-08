@@ -1,0 +1,14 @@
+langchain
+ctransformers
+streamlit
+openai
+astroid
+dotenv
+uuid
+typing_extensions
+streamlit-image-select
+tika
+python-dotenv
+langchain-groq
+groq
+python-docx
