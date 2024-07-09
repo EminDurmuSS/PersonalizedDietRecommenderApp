@@ -401,12 +401,11 @@ def main():
         st.session_state.llm_response = handle_userinput(user_question, conversation)
         st.session_state.chat_history.append(st.session_state.llm_response)
     
+    
+
     if st.session_state.llm_response:
         st.write("### Dietitian's Answer: ")
         st.write(st.session_state.llm_response)
-
-    if st.session_state.food_info:
-        display_recipe_info(st.session_state.food_info)
 
     if st.button("Modify Recipe"):
         if not st.session_state.chat_history:
@@ -418,7 +417,11 @@ def main():
             st.session_state.chat_history.append(modified_recipe)
             st.write("### Modified Recipe:")
             st.write(modified_recipe)
+            
+    if st.session_state.food_info:
+        display_recipe_info(st.session_state.food_info)
 
+    
     with st.sidebar:
         st.header("Recipe Chatbot")
         user_input = st.text_input("Ask me anything about the suggested dish")
