@@ -281,7 +281,7 @@ def query_recipes(vector):
     response = index.query(
         namespace="foodrecipe5",
         vector=vector,
-        top_k=10,
+        top_k=3,
         include_metadata=True,
         metric="cosine"
     )
