@@ -300,27 +300,82 @@ def handle_userinput(user_question, conversation):
     response = conversation({'question': user_question, 'chat_history': []})
     return response['answer']
 
+def format_ingredients(ingredients):
+    # Convert the ingredients string to a list
+    ingredients_list = ast.literal_eval(ingredients)
+    formatted_ingredients = "\n".join([f"- {ingredient}" for ingredient in ingredients_list])
+    return formatted_ingredients
+
+def format_instructions(instructions):
+    # Use regular expressions to split instructions based on the pattern `n-)`
+    instructions_list = re.split(r'(\d+-\))', instructions)
+    formatted_instructions = ""
+    step = ""
+    for item in instructions_list:
+        if re.match(r'\d+-\)', item):
+            if step:
+                formatted_instructions += step.strip() + "\n"
+            step = item
+        else:
+            step += " " + item.strip()
+    if step:
+        formatted_instructions += step.strip()
+    return formatted_instructions
+
+def format_health_type(health_type):
+    # Convert the health type string to a list and then format it
+    health_type_list = ast.literal_eval(health_type)
+    formatted_health_type = "\n".join([f"* {ht}" for ht in health_type_list])
+    return formatted_health_type
+
+def format_nutrition_facts(nutrition_facts):
+    # Convert the nutrition facts string to a list and then format it
+    nutrition_facts_list = nutrition_facts.split(" - ")
+    formatted_nutrition_facts = "\n".join([f"* {nf}" for nf in nutrition_facts_list])
+    return formatted_nutrition_facts
+
 def display_recipe_info(food_info):
     st.write("### Recipe Information:")
     for info in food_info:
         st.write(f"##### **Food Name:** {info['Food Name']} ")
-        st.write(f"**Description:** {info['Description']}")
-        st.write(f"**Ingredients:** {info['Recipe Ingredient Quantities']}")
-        st.write(f"**Parts:** {info['Recipe Ingredient Parts']}")
-        st.write(f"**Servings:** {info['Recipe Servings']}")
-        st.markdown(f"<p><b>Keywords:</b> {info['Keywords']}</p>", unsafe_allow_html=True)
+        st.write(f"**Description:** {info.get('Description', 'N/A')}")
+        st.write(f"**Meal Type:** {info.get('Meal Type', 'N/A')}")
+        st.write(f"**Diet Type:** {info.get('Diet Type', 'N/A')}")
+        
+        health_type = info.get('Health Type', 'N/A')
+        formatted_health_type = format_health_type(health_type)
+        st.write("**Health Type:**")
+        st.text(formatted_health_type)
+        
+        st.write(f"**Country/Region:** {info.get('Country/Region', 'N/A')}")
+        st.write(f"**Occasion:** {info.get('Occasion', 'N/A')}")
+        st.write(f"**Cook Time:** {info.get('Cook Time', 'N/A')}")
 
-        st.markdown(f"<p><b>Instructions:</b> {info['Recipe Instructions']}</p>", unsafe_allow_html=True)
+        st.write("**Ingredients:**")
+        ingredients = info.get('Recipe Ingredients', 'N/A')
+        formatted_ingredients = format_ingredients(ingredients)
+        st.text(formatted_ingredients)
 
-        st.markdown(f'''{info['Nutrition Facts']}''', unsafe_allow_html=True)
+        st.write("**Instructions:**")
+        instructions = info.get('Recipe Instructions', 'N/A')
+        formatted_instructions = format_instructions(instructions)
+        st.text(formatted_instructions)
 
+        st.write(f"**Servings:** {info.get('Recipe Servings', 'N/A')}")
+        st.markdown(f"<p><b>Keywords:</b> {info.get('Keywords', 'N/A')}</p>", unsafe_allow_html=True)
+        
+        nutrition_facts = info.get('Nutrition Facts', 'N/A')
+        formatted_nutrition_facts = format_nutrition_facts(nutrition_facts)
+        st.write("**Nutrition Facts:**")
+        st.text(formatted_nutrition_facts)
 
-        st.markdown("#### **Nutritional Information**")
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Calories", info['Calories'])
-        col2.metric("Fat", info['Fat'])
-        col3.metric("Carbohydrates", info['Carbohydrates'])
-        col4.metric("Protein", info['Protein'])
+        if 'Calories' in info and 'Fat' in info and 'Carbohydrates' in info and 'Protein' in info:
+            st.markdown("#### **Nutritional Information**")
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Calories", info['Calories'])
+            col2.metric("Fat", info['Fat'])
+            col3.metric("Carbohydrates", info['Carbohydrates'])
+            col4.metric("Protein", info['Protein'])
 
         if 'Food Images' in info:
             try:
@@ -349,47 +404,87 @@ def main():
         st.session_state.chat_history = []
         st.session_state.food_info = []
         st.session_state.llm_response = ""  # Initialize LLM response
+        st.session_state.selected_region = ""  # Default region empty
+        st.session_state.selected_country = ""  # Default country empty
+
+    region_cuisine_map = {
+        "Global": ["General"],
+        "Europe": ["General", "Italian", "French", "Dutch", "German", "Spanish", "Greek", "Portuguese", "Swedish"],
+        "Asia": ["General", "Chinese", "Japanese", "Indian", "Korean", "Thai", "Vietnamese", "Filipino", "Indonesian"],
+        "Americas": ["General", "American", "Mexican", "Brazilian", "Argentinian", "Canadian", "Peruvian", "Chilean"],
+        "Africa": ["General", "North African", "West African", "East African", "South African", "Ethiopian", "Moroccan", "Egyptian"],
+        "Middle East": ["General", "Turkish", "Lebanese", "Persian", "Israeli", "Syrian", "Saudi Arabian", "Emirati"],
+        "Oceania": ["General", "Australian", "New Zealand"]
+    }
+
+    regions = [""] + list(region_cuisine_map.keys())
+    region = st.selectbox("Select Region", regions)
+
+    if region:
+        countries = [""] + region_cuisine_map[region]
+    else:
+        countries = [""]
+
+    if st.session_state.selected_region != region:
+        st.session_state.selected_region = region
+        st.session_state.selected_country = ""
 
     with st.form("recipe_form"):
-        meal_type = st.selectbox("Meal Type", ["Breakfast", "Lunch", "Dinner"])
-        calories = st.number_input("Calories (kcal)", min_value=0)
-        carbs = st.number_input("Carbs (g)", min_value=0)
-        protein = st.number_input("Protein (g)", min_value=0)
-        fat = st.number_input("Fat (g)", min_value=0)
-        diet_type = st.selectbox("Diet Type", ["Standard", "Vegan", "Ketogenic", "Paleo", "Vegetarian"])
+        meal_type = st.selectbox("Meal Type", ["","Breakfast", "Brunch", "Lunch","Starter", "Dinner", "Snack", "Dessert","Drink"])
+        calories = st.selectbox("Calories Level", ["Low", "Medium", "High"])
+        carbs = st.selectbox("Carbs Level", ["Low", "Medium", "High"])
+        protein = st.selectbox("Protein Level", ["Low", "Medium", "High"])
+        fat = st.selectbox("Fat Level", ["Low", "Medium", "High"])
+        diet_type = st.selectbox("Diet Type", ["Standard", "Vegan", "Ketogenic", "Paleo", "Vegetarian", "Gluten-Free"])
+
+        country_cuisine = st.selectbox("Select Country/Cuisine", countries)
+
+        if st.session_state.selected_country != country_cuisine:
+            st.session_state.selected_country = country_cuisine
+
+        occasion = st.text_input("Occasion")
         allergies = st.text_input("Food Allergies")
         health_problems = st.text_input("Health Problems")
         
+        # Adding more cook time options based on dataset
+        cook_time = st.selectbox("Cook Time", ["","less than 15 Mins", "less than 30 Mins", "less than 60 Mins", 
+                                               "less than 4 Hours", "less than 6 Hours", "less than 7 Hours", 
+                                               "less than 8 Hours", "less than 10 Hours", "less than 12 Hours", 
+                                               "more than 12 Hours"])
+
         submitted = st.form_submit_button("Get Recommendations")
 
     if submitted:
-        query_text = f"Meal Type: {meal_type}, Calories: {calories} kcal, Carbs: {carbs} g, Protein: {protein} g, Fat: {fat} g, Diet Type: {diet_type}, Allergies: {allergies}, Health Problems: {health_problems}"
+        query_text = f"Meal Type: {meal_type}, Calories: {calories}, Carbs: {carbs}, Protein: {protein}, Fat: {fat}, Diet Type: {diet_type}, Country/Region: {country_cuisine},Occasion:{occasion}, Allergies: {allergies}, Health Problems: {health_problems}, Cook Time: {cook_time}"
         query_embedding = get_embedding(query_text, model="text-embedding-ada-002")
         recipes = query_recipes(query_embedding)
-        
-        foodInfo=""
+
+        foodInfo = ""
         food_info = []
         for match in recipes['matches']:
             for key, value in match['metadata'].items():
                 foodInfo += f"**{key}**: {value}\n"
             metadata = match['metadata']
             food_info.append(metadata)
-        
+
         st.session_state.food_info = food_info
         user_question = f"""
             Based on that food: {foodInfo}
             You are a professional chef with expertise in creating customized meal plans and you are also a dietitian. Return the matching recipes from the provided document, according to the user's criteria. Do not create new recipes. The user will enter the desired nutritional values for one serving and you will return the results based on the nutritional values for one serving only. Here are the criteria:
-            
+
             ### Criteria:
-            - **Calories**: {calories} kcal
-            - **Carbs**: {carbs}g
-            - **Protein**: {protein}g
-            - **Fat**: {fat}g
+            - **Calories**: {calories}
+            - **Carbs**: {carbs}
+            - **Protein**: {protein}
+            - **Fat**: {fat}
             - **Diet Type**: {diet_type}
+            - **Country/Region**: {country_cuisine}
             - **Food Allergies**: {allergies}
             - **Health Problems**: {health_problems}
             - **Meal Type**: {meal_type}
-
+            - **Cook Time**: {cook_time}
+            - **occasion**::{occasion}    
+            
             ### Instructions:
             1. Provide the name, detailed description, ingredients, instructions, directions, and nutrition facts for each meal.
             2. Ensure recipes account for any health problems or allergies mentioned.
@@ -400,12 +495,15 @@ def main():
         conversation = st.session_state.conversation
         st.session_state.llm_response = handle_userinput(user_question, conversation)
         st.session_state.chat_history.append(st.session_state.llm_response)
-    
-    
+
+
 
     if st.session_state.llm_response:
         st.write("### Dietitian's Answer: ")
         st.write(st.session_state.llm_response)
+
+    if st.session_state.food_info:
+        display_recipe_info(st.session_state.food_info)
 
     if st.button("Modify Recipe"):
         if not st.session_state.chat_history:
@@ -417,11 +515,7 @@ def main():
             st.session_state.chat_history.append(modified_recipe)
             st.write("### Modified Recipe:")
             st.write(modified_recipe)
-            
-    if st.session_state.food_info:
-        display_recipe_info(st.session_state.food_info)
 
-    
     with st.sidebar:
         st.header("Recipe Chatbot")
         user_input = st.text_input("Ask me anything about the suggested dish")
