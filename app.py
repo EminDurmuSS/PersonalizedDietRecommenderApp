@@ -406,6 +406,7 @@ def main():
         st.session_state.llm_response = ""  # Initialize LLM response
         st.session_state.selected_region = ""  # Default region empty
         st.session_state.selected_country = ""  # Default country empty
+        st.session_state.recipe_offset = 0  # Initialize recipe offset for pagination
 
     region_cuisine_map = {
         "Global": ["General"],
@@ -461,7 +462,7 @@ def main():
 
         foodInfo = ""
         food_info = []
-        for match in recipes['matches']:
+        for match in recipes:
             for key, value in match['metadata'].items():
                 foodInfo += f"**{key}**: {value}\n"
             metadata = match['metadata']
@@ -496,13 +497,56 @@ def main():
         st.session_state.llm_response = handle_userinput(user_question, conversation)
         st.session_state.chat_history.append(st.session_state.llm_response)
 
-
-
     if st.session_state.llm_response:
         st.write("### Dietitian's Answer: ")
         st.write(st.session_state.llm_response)
 
     if st.session_state.food_info:
+        display_recipe_info(st.session_state.food_info)
+
+    if st.button("Get Another Recipe"):
+        st.session_state.recipe_offset += 1  # Increment the offset to get the next recipe
+        query_text = f"Meal Type: {meal_type}, Calories: {calories}, Carbs: {carbs}, Protein: {protein}, Fat: {fat}, Diet Type: {diet_type}, Country/Region: {country_cuisine},Occasion:{occasion}, Allergies: {allergies}, Health Problems: {health_problems}, Cook Time: {cook_time}"
+        query_embedding = get_embedding(query_text, model="text-embedding-ada-002")
+        recipes = query_recipes(query_embedding, offset=st.session_state.recipe_offset)
+        
+        food_info = []
+        for match in recipes:
+            metadata = match['metadata']
+            food_info.append(metadata)
+
+        st.session_state.food_info = food_info
+        user_question = f"""
+            Based on that food: {food_info}
+            You are a professional chef with expertise in creating customized meal plans and you are also a dietitian. Return the matching recipes from the provided document, according to the user's criteria. Do not create new recipes. The user will enter the desired nutritional values for one serving and you will return the results based on the nutritional values for one serving only. Here are the criteria:
+
+            ### Criteria:
+            - **Calories**: {calories}
+            - **Carbs**: {carbs}
+            - **Protein**: {protein}
+            - **Fat**: {fat}
+            - **Diet Type**: {diet_type}
+            - **Country/Region**: {country_cuisine}
+            - **Food Allergies**: {allergies}
+            - **Health Problems**: {health_problems}
+            - **Meal Type**: {meal_type}
+            - **Cook Time**: {cook_time}
+            - **occasion**::{occasion}    
+            
+            ### Instructions:
+            1. Provide the name, detailed description, ingredients, instructions, directions, and nutrition facts for each meal.
+            2. Ensure recipes account for any health problems or allergies mentioned.
+            3. Format the response in a user-friendly way, with clear sections and bullet points for easy reading.
+            4. Explain in great detail how the dish is made, including all direction steps.
+            5. Provide the name, detailed description, instructions, ingredients, directions, and nutrition facts for that meal.
+        """
+        conversation = st.session_state.conversation
+        st.session_state.llm_response = handle_userinput(user_question, conversation)
+        st.session_state.chat_history.append(st.session_state.llm_response)
+
+        st.write("### Dietitian's Answer: ")
+        st.write(st.session_state.llm_response)
+
         display_recipe_info(st.session_state.food_info)
 
     if st.button("Modify Recipe"):
