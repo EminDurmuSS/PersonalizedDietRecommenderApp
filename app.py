@@ -277,15 +277,15 @@ st.subheader('Your Best Food Advisor 🥄')
 st.markdown('<style>h3{color: pink; text-align: center;}</style>', unsafe_allow_html=True)
 st.markdown('<style>div[class="stButton"] button { background-color: #4CAF50; }</style>', unsafe_allow_html=True)
 
-def query_recipes(vector):
+def query_recipes(vector, offset=0):
     response = index.query(
         namespace="foodrecipe5",
         vector=vector,
-        top_k=3,
-        include_metadata=True,
-        metric="cosine"
+        top_k=10,  # Retrieve more recipes to handle user requests for more options
+        include_metadata=True
     )
-    return response
+    return response['matches'][offset:offset+1]  # Return only one recipe at a time
+
 
 def get_conversation_chain(vectorstore):
     llm = ChatGroq(temperature=0.8, groq_api_key=st.secrets["GROQ_API_KEY"], model_name="llama3-70b-8192")
